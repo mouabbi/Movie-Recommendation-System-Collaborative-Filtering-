@@ -36,6 +36,8 @@ The system uses **collaborative filtering**, which relies on user-item interacti
 2. **Item-Item Collaborative Filtering:**  
    Identifies movies similar to the ones the user has rated highly and recommends them.
 
+3. **Matrix Factorization (SVD) :** 
+    improves these techniques by uncovering latent features, which enhance the system’s ability to make personalized recommendations even in sparse datasets.
 ---
 
 ## 🌍 Workflow and Scenarios
