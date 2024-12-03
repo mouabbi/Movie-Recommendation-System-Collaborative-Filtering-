@@ -60,7 +60,7 @@ The system uses **collaborative filtering**, which relies on user-item interacti
 ## 🔧 Model Building (Collaborative Filtering)
 
 ### Data Processing
-Your data will be structured as follows:
+our data will be structured as follows:
 
 | userId | movieId | rating | timestamp   |
 |--------|---------|--------|-------------|
@@ -121,8 +121,8 @@ Your data will be structured as follows:
 
 ## 🔗 Project Links
 
-- GitHub: [Your GitHub Repository](https://github.com/username/repo_name)
-- Demo: [Website Demo](https://your-website.com)
+- GitHub: [ GitHub Repository](https://github.com/mouabbi/Movie-Recommendation-System-Collaborative-Filtering-)
+- Demo: [Website Demo](https://my-website.com)
 
 ---
 
@@ -144,11 +144,3 @@ Your data will be structured as follows:
   - Cosine Similarity  
 
 ---
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
----
-
-![Movie Icon](https://img.icons8.com/ios/452/movie.png) ![Recommendation Icon](https://img.icons8.com/ios/452/recommendation.png)
