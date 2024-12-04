@@ -1,14 +1,14 @@
 import os
 import pickle
-import numpy as np
-from ml.recommender import home_page_recommendations
-from ml.Training import item_item_collaborative_filtering,user_user_collaborative_filtering ,svd_recommendation
-from ml.precomputed import save_precomputed_data, load_precomputed_data
-
+import pandas as pd
+from ml.preprocessing.data_preprocessing import generate_id_mappings
+from ml.recommender import new_user_recommendation,home_page_recommendations,recommendations_after_new_movie
+from ml.Training import item_item_collaborative_filtering, user_user_collaborative_filtering, svd_recommendation
 
 class MLController:
-    def __init__(self, ratings, user_id=None):
+    def __init__(self, ratings, movies, user_id=None):
         self.ratings = ratings
+        self.movies = movies
         self.user_id = user_id
         self.item_item_matrix = None
         self.user_user_matrix = None
@@ -16,6 +16,8 @@ class MLController:
         self.svd_predictions = None
         self.movie_id_to_index = None
         self.index_to_movie_id = None
+        self.user_id_to_index = None
+        self.index_to_user_id = None
 
         # Load precomputed data or initialize it
         self.load_or_initialize_precomputed_data()
@@ -43,6 +45,10 @@ class MLController:
                 self.movie_id_to_index = pickle.load(f)
             with open(os.path.join('ml/precomputed/maps', 'index_to_movie_id.pkl'), 'rb') as f:
                 self.index_to_movie_id = pickle.load(f)
+            with open(os.path.join('ml/precomputed/maps', 'user_id_to_index.pkl'), 'rb') as f:
+                self.user_id_to_index = pickle.load(f)
+            with open(os.path.join('ml/precomputed/maps', 'index_to_user_id.pkl'), 'rb') as f:
+                self.index_to_user_id = pickle.load(f)
             with open(os.path.join('ml/precomputed', 'svd_predictions.pkl'), 'rb') as f:
                 self.svd_predictions = pickle.load(f)
         except Exception as e:
@@ -52,52 +58,106 @@ class MLController:
     def update_precomputed_data(self):
         """ Recalculate and store matrices and maps if not found. """
         print("Updating precomputed data...")
+        # Generate and save maps
+        self.generate_and_save_maps()
         
-        # Calculate user-item matrix and store it
-        self.user_item_matrix = calculate_user_item_matrix(self.ratings)
-        save_precomputed_data('user_item_matrix.pkl', self.user_item_matrix)
+        # Generate user-item matrix
+        self.user_item_matrix = self.generate_user_item_matrix(self.ratings, self.movies)
+        self.save_precomputed_data('user_item_matrix.pkl', self.user_item_matrix)
         
-        # Calculate item-item matrix and store it
-        self.item_item_matrix = calculate_item_item_matrix(self.user_item_matrix)
-        save_precomputed_data('item_item_matrix.pkl', self.item_item_matrix)
+        # Generate item-item matrix and store it
+        self.item_item_matrix = item_item_collaborative_filtering(self.user_item_matrix, self.index_to_movie_id)
+        self.save_precomputed_data('item_item_matrix.pkl', self.item_item_matrix)
         
-        # Calculate user-user matrix and store it
-        self.user_user_matrix = calculate_user_user_matrix(self.user_item_matrix)
-        save_precomputed_data('user_user_matrix.pkl', self.user_user_matrix)
+        # Generate user-user matrix and store it
+        self.user_user_matrix = user_user_collaborative_filtering(self.user_item_matrix, self.index_to_movie_id, self.index_to_user_id)
+        self.save_precomputed_data('user_user_matrix.pkl', self.user_user_matrix)
         
-        # Calculate SVD predictions and store it
-        self.svd_predictions = self.calculate_svd_predictions()
-        save_precomputed_data('svd_predictions.pkl', self.svd_predictions)
-        
-        # Calculate and store movie ID to index and index to movie ID maps
-        self.movie_id_to_index, self.index_to_movie_id = self.generate_movie_maps()
-        save_precomputed_data('movie_id_to_index.pkl', self.movie_id_to_index)
-        save_precomputed_data('index_to_movie_id.pkl', self.index_to_movie_id)
+        # Generate SVD predictions and store them
+        self.svd_predictions = svd_recommendation(self.user_item_matrix, n_components=50)
+        self.save_precomputed_data('svd_predictions.pkl', self.svd_predictions)
 
-    def generate_movie_maps(self):
-        """ Generate and return movie maps (ID to index and index to ID). """
-        movie_ids = self.ratings['movieId'].unique()
-        movie_id_to_index = {movie_id: idx for idx, movie_id in enumerate(movie_ids)}
-        index_to_movie_id = {idx: movie_id for movie_id, idx in movie_id_to_index.items()}
-        return movie_id_to_index, index_to_movie_id
+    def generate_and_save_maps(self):
+        """ Generate and save the four required maps. """
+        movie_id_to_index, index_to_movie_id, user_id_to_index, index_to_user_id = generate_id_mappings(self.ratings)
+        
+        # Save the generated maps
+        self.save_precomputed_data('movie_id_to_index.pkl', movie_id_to_index)
+        self.save_precomputed_data('index_to_movie_id.pkl', index_to_movie_id)
+        self.save_precomputed_data('user_id_to_index.pkl', user_id_to_index)
+        self.save_precomputed_data('index_to_user_id.pkl', index_to_user_id)
 
-    def calculate_svd_predictions(self):
-        """ Calculate and return the SVD-based predictions. """
-        # Assuming SVD prediction logic is implemented in ml.training
-        return calculate_svd_predictions(self.user_item_matrix)
+    def save_precomputed_data(self, filename, data):
+        """ Save precomputed data to the specified file. """
+        file_path = os.path.join('ml/precomputed', filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)  # Ensure the directory exists
+        with open(file_path, 'wb') as f:
+            pickle.dump(data, f)
+        print(f"Data saved to {file_path}")
+    
+    def recommend_for_new_user(self, watched_movie_id=None, top_n=10, diversity_factor=0.3):
+        """
+        Recommend movies for a new user by using the new_user_recommendation function.
+        """
+        return new_user_recommendation(
+            ratings=self.ratings, 
+            item_item_recommendations=self.item_item_matrix, 
+            watched_movie_id=watched_movie_id, 
+            top_n=top_n, 
+            diversity_factor=diversity_factor
+        )
+        
+    def recommend_for_old_user(self, user_id, weights=(0.4, 0.3, 0.3), top_n=50, global_top_movies=5):
+        """
+        Recommends movies for an old user by calling the home_page_recommendations function.
+        :param user_id: ID of the user to generate recommendations for
+        :param weights: Weights for blending the recommendation methods (item-item, user-user, SVD)
+        :param top_n: Number of movies to recommend
+        :param global_top_movies: Number of global top rated movies to include
+        :return: List of recommended movie IDs
+        """
+        # Call home_page_recommendations for old user
+        recommendations = home_page_recommendations(
+            user_id=user_id,
+            ratings=self.ratings,
+            user_movie_matrix=self.user_item_matrix,
+            item_item_recommendations=self.item_item_matrix,
+            user_user_recommendations=self.user_user_matrix,
+            svd_prediction_matrix=self.svd_predictions,
+            user_id_to_index=self.user_id_to_index,
+            index_to_movie_id=self.index_to_movie_id,
+            movie_id_to_index=self.movie_id_to_index,
+            weights=weights,
+            top_n=top_n,
+            global_top_movies=global_top_movies
+        )
 
-    def get_home_page_recommendations(self, top_n=50):
-        """ Get personalized home page recommendations for the user. """
-        if self.user_id:
-            return home_page_recommendations_with_diversity(
-                user_id=self.user_id,
-                ratings=self.ratings,
-                user_movie_matrix=self.user_item_matrix,
-                item_item_recommendations=self.item_item_matrix,
-                user_user_recommendations=self.user_user_matrix,
-                svd_prediction_matrix=self.svd_predictions,
-                top_n=top_n
-            )
-        else:
-            print("User ID is required for personalized recommendations.")
-            return []
+        return recommendations
+    
+    
+    def recommend_similar_movie_for_old_user(self, user_id, new_movie_id, top_n=10, weights=(0.7, 0.2), rating_threshold=1):
+        """
+        Recommends similar movies for an old user after watching a new movie.
+        :param user_id: ID of the user
+        :param new_movie_id: ID of the newly watched movie
+        :param top_n: Number of movies to recommend
+        :param weights: Weights for blending the recommendation methods (item-item, SVD)
+        :param rating_threshold: Minimum predicted rating threshold for SVD-based recommendations
+        :return: List of recommended movie IDs
+        """
+        recommendations = recommendations_after_new_movie(
+            user_id=user_id, 
+            new_movie_id=new_movie_id, 
+            ratings=self.ratings, 
+            item_item_recommendations=self.item_item_matrix, 
+            svd_prediction_matrix=self.svd_predictions, 
+            user_movie_matrix=self.user_item_matrix, 
+            user_id_to_index=self.user_id_to_index, 
+            index_to_movie_id=self.index_to_movie_id, 
+            weights=weights, 
+            top_n=top_n, 
+            rating_threshold=rating_threshold
+        )
+
+        return recommendations
+    

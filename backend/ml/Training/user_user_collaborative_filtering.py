@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+import pandas as pd
 
 def user_user_collaborative_filtering(user_movie_matrix, index_to_movie_id, index_to_user_id, k=5):
     """

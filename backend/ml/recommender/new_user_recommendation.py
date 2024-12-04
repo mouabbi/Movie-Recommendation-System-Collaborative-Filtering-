@@ -54,3 +54,5 @@ def new_user_recommendation(
         random_movies = list(np.random.choice(all_movies, size=num_diverse, replace=False))
         
         return similar_movies[:top_n - num_diverse] + random_movies
+    
+    
