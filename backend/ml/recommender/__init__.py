@@ -1,0 +1,3 @@
+from home_page_recommendations import home_page_recommendations
+from new_user_recommendation import new_user_recommendation
+from recommendations_after_new_movie import recommendations_after_new_movie
