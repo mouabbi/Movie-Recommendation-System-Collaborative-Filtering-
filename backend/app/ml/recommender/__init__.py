@@ -1,0 +1,3 @@
+from app.ml.recommender.home_page_recommendations import home_page_recommendations
+from app.ml.recommender.new_user_recommendation import new_user_recommendation
+from app.ml.recommender.recommendations_after_new_movie import recommendations_after_new_movie
