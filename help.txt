@@ -13,12 +13,3 @@ backend/
 └── requirements.txt      # Project dependencies
 
 
-
-
-models.py  (change this name  here will be a big class to control all ml thigns  
-- method to get home_page_recommendations() by importing existing fct in ml/recommender and others fct 
-- method to calculate user_item_matrix and store it in ml/precomputed
-_ method to calculate itiem_item user_user  those method just use existing ones in ml/training and sotre those matrix in ml/precomputer 
-- method for maps aso store them in ml/precomputed 
-- attribute for those matrix and maps  initialied by stored data if there is no stord data then use method to update orecupted data 
-- 
