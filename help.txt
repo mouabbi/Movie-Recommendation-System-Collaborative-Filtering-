@@ -10,6 +10,6 @@ backend/
 ├── ml/
 │   ├── models.py         # ML models (SVD, etc.)
 │   └── precomputed/      # Store precomputed matrices (SVD, etc.)
-└── requirements.txt      # Project dependencies
+└── requirements.txt      #  dependencies
 
 
