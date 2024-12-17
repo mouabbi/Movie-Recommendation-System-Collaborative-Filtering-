@@ -1,7 +1,7 @@
 backend/
 ├── api/
 │   ├── __init__.py
-│   ├── models.py         # ML models, including precomputed SVD logic
+│   ├── models.py         # ML models, including precomputed SVD 
 │   ├── routes.py         # API routes for getting recommendations
 │   └── main.py           # FastAPI entry point
 ├── data/
